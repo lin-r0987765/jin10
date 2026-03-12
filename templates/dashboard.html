@@ -305,11 +305,6 @@
             position: relative;
             margin-bottom: 48px;
         }
-        .stock-slider-wrapper::before, .stock-slider-wrapper::after {
-            content: ''; position: absolute; top: 0; width: 60px; height: 100%; z-index: 5; pointer-events: none;
-        }
-        .stock-slider-wrapper::before { left: 0; background: linear-gradient(90deg, var(--bg-primary), transparent); }
-        .stock-slider-wrapper::after { right: 0; background: linear-gradient(-90deg, var(--bg-primary), transparent); }
         
         .stock-slider {
             display: flex;
@@ -1430,6 +1425,42 @@
         setInterval(renderCountdown, 1000);
         setInterval(updateCountdown, 30000);
         setInterval(loadPrices, 300000);  // 每5分鐘更新股價
+
+        // ===== 股票滑動器滑鼠拖曳功能 =====
+        const slider = document.getElementById('stock-slider');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        slider.addEventListener('mousedown', (e) => {
+            isDown = true;
+            slider.style.cursor = 'grabbing';
+            slider.style.scrollBehavior = 'auto'; // Disable smooth scroll while dragging
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+        });
+
+        slider.addEventListener('mouseleave', () => {
+            if (!isDown) return;
+            isDown = false;
+            slider.style.cursor = 'auto';
+            slider.style.scrollBehavior = 'smooth';
+        });
+
+        slider.addEventListener('mouseup', () => {
+            if (!isDown) return;
+            isDown = false;
+            slider.style.cursor = 'auto';
+            slider.style.scrollBehavior = 'smooth';
+        });
+
+        slider.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll fast
+            slider.scrollLeft = scrollLeft - walk;
+        });
     </script>
 </body>
 </html>
