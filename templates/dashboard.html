@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票估值分析系統 Dashboard</title>
+    <script src="/static/js/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050508;
+            --bg-secondary: rgba(18, 20, 28, 0.7);
+            --bg-card: rgba(22, 25, 37, 0.5);
+            --bg-card-hover: rgba(30, 35, 50, 0.6);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-blue-glow: rgba(59, 130, 246, 0.5);
+            --accent-green: #10b981;
+            --accent-green-glow: rgba(16, 185, 129, 0.5);
+            --accent-yellow: #f59e0b;
+            --accent-yellow-glow: rgba(245, 158, 11, 0.5);
+            --accent-red: #ef4444;
+            --accent-red-glow: rgba(239, 68, 68, 0.5);
+            --accent-purple: #8b5cf6;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --glass-blur: blur(16px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Background Glows */
+        body::before {
+            content: ""; position: absolute; top: -10%; left: -10%; width: 50vw; height: 50vh;
+            background: radial-gradient(circle, var(--accent-blue-glow) 0%, transparent 60%);
+            opacity: 0.15; filter: blur(60px); z-index: -1; animation: drift 20s infinite alternate;
+        }
+        body::after {
+            content: ""; position: absolute; bottom: -10%; right: -10%; width: 50vw; height: 50vh;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 60%);
+            opacity: 0.15; filter: blur(60px); z-index: -1; animation: drift 25s infinite alternate-reverse;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(10%, 10%); }
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .header h1 { 
+            font-family: 'Outfit', sans-serif; 
+            font-size: 24px; 
+            font-weight: 700; 
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .header .status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .status-pill {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .header .status .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .container { padding: 40px; max-width: 1600px; margin: 0 auto; }
+
+        /* Titles */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        .section-title .line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+        }
+
+        /* Cards Generic */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .glass-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3), 0 0 20px rgba(59, 130, 246, 0.05);
+        }
+
+        /* 四大面向卡片 */
+        .dimension-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+        .dim-card { position: relative; overflow: hidden; }
+        .dim-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--dim-color, var(--accent-blue)), transparent);
+            opacity: 0.8;
+        }
+        
+        .dim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .dim-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .dim-trend {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .trend-up { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .trend-down { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .trend-neutral { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        .dim-score {
+            font-family: 'Outfit', sans-serif;
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+        .dim-summary {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            min-height: 40px;
+        }
+        .dim-factors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .factor-tag {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .factor-tag:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .dim-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .dim-time::before {
+            content: ''; display: inline-block; width: 12px; height: 12px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>') no-repeat center;
+        }
+
+        .score-color-high { color: var(--accent-green); text-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        .score-color-mid { color: var(--accent-yellow); text-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+        .score-color-low { color: var(--accent-red); text-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+
+        /* 圖表區域 */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+        .chart-card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-card h3::before {
+            content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-blue);
+            box-shadow: 0 0 8px var(--accent-blue);
+        }
+        .chart-container { position: relative; height: 300px; }
+
+        /* 股票估值卡片 */
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+        .stock-card {
+            display: flex;
+            flex-direction: column;
+        }
+        .stock-card:hover { border-color: var(--accent-purple); box-shadow: 0 15px 35px rgba(0,0,0,0.3), 0 0 25px rgba(139, 92, 246, 0.15); }
+        
+        .stock-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        
+        .ticker {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            background: linear-gradient(90deg, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .company {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        .overall-wrap {
+            display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;
+        }
+        .overall-score {
+            font-family: 'Outfit', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .recommendation {
+            display: inline-flex;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .rec-buy { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .rec-hold { background: rgba(37, 99, 235, 0.15); color: var(--accent-blue); border: 1px solid rgba(37, 99, 235, 0.3); }
+        .rec-sell { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .target-price {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            border: 1px dashed var(--border-hover);
+        }
+        .sub-scores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .sub-score {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sub-score span:last-child { 
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700; 
+            color: var(--text-primary); 
+        }
+        .analysis-summary {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            flex: 1;
+        }
+        .val-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: auto;
+        }
+        .val-time::before {
+            content: ''; display: inline-block; width: 12px; height: 12px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat center;
+        }
+
+        /* 控制面板 */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .btn {
+            position: relative;
+            padding: 10px 24px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: all 0.4s ease;
+        }
+        .btn:hover { 
+            background: rgba(255, 255, 255, 0.08); 
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn:hover::before { left: 150%; }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn.loading { color: transparent; }
+        .btn.loading::after {
+            content: "";
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        /* 活動日誌 */
+        .log-section {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+        /* Custom Scrollbar for logs */
+        .log-section::-webkit-scrollbar { width: 6px; }
+        .log-section::-webkit-scrollbar-track { background: transparent; }
+        .log-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .log-section::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        .log-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: background 0.2s;
+        }
+        .log-item:hover { background: rgba(255,255,255,0.02); }
+        .log-item:last-child { border-bottom: none; }
+        
+        .log-item .log-time { 
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-secondary); 
+            white-space: nowrap; 
+            min-width: 70px; 
+            font-size: 12px;
+        }
+        .log-item .log-dim {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            min-width: 80px;
+            text-align: center;
+        }
+        .log-dim-fundamental { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.2); }
+        .log-dim-technical { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.2); }
+        .log-dim-sentiment { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .log-dim-political { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .log-score {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .no-data {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 60px 40px;
+            font-size: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            grid-column: 1 / -1;
+        }
+        .no-data::before {
+            content: ''; display: block; width: 48px; height: 48px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23333750" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>') no-repeat center;
+            background-size: contain;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1400px) {
+            .stock-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 1200px) {
+            .dimension-grid { grid-template-columns: repeat(2, 1fr); }
+            .stock-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .header { padding: 14px 16px; flex-direction: column; gap: 10px; }
+            .header h1 { font-size: 18px; }
+            .header .status { gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 12px; }
+            .container { padding: 16px 12px; }
+            .section-title { font-size: 17px; gap: 10px; }
+            .section-title svg { width: 20px; height: 20px; }
+            .section-title span[style] { font-size: 12px !important; }
+            .dimension-grid, .charts-row, .stock-grid { grid-template-columns: 1fr; gap: 14px; }
+            .glass-card { padding: 18px 16px; border-radius: 12px; }
+            .dim-score { font-size: 40px; }
+            .dim-summary { font-size: 12px; min-height: auto; }
+            .chart-container { height: 220px; }
+            .controls { flex-wrap: wrap; gap: 10px; }
+            .btn { flex: 1 1 100%; text-align: center; justify-content: center; padding: 12px 16px; font-size: 13px; }
+            .btn svg { width: 14px; height: 14px; }
+            .ticker { font-size: 20px; }
+            .overall-score { font-size: 36px; }
+            .sub-scores { gap: 8px; padding: 10px; }
+            .sub-score span:last-child { font-size: 14px; }
+            .target-price { font-size: 13px; padding: 6px 10px; }
+            .log-section { padding: 12px 14px; max-height: 300px; }
+            .log-item { gap: 10px; padding: 10px 0; font-size: 12px; flex-wrap: wrap; }
+            .log-item .log-time { min-width: 55px; font-size: 11px; }
+            .log-item .log-dim { min-width: 60px; font-size: 10px; padding: 3px 8px; }
+            .log-score { font-size: 14px; }
+            .no-data { padding: 40px 20px; font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .header h1 { font-size: 16px; }
+            .container { padding: 12px 8px; }
+            .dim-score { font-size: 32px; }
+            .overall-score { font-size: 28px; }
+            .stock-header { flex-direction: column; gap: 8px; }
+        }
+
+        /* 下次分析倒計時 */
+        .countdown-pill {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .countdown-pill svg { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Stock Valuation Dashboard</h1>
+        <div class="status">
+            <div class="status-pill">
+                <span class="dot"></span> 系統運行中
+            </div>
+            <span id="clock" style="font-family: 'Outfit', sans-serif;"></span>
+            <span id="next-analysis" class="countdown-pill" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span id="countdown-text"></span>
+            </span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 控制面板 -->
+        <div class="controls">
+            <button class="btn btn-primary" id="btn-realtime" onclick="triggerRealtime()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                手動觸發即時分析
+            </button>
+            <button class="btn" id="btn-valuation" onclick="triggerValuation()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                手動觸發股票估值
+            </button>
+            <button class="btn" onclick="refreshAll()" style="margin-left: auto;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                重新整理
+            </button>
+        </div>
+
+        <!-- 四大面向即時評分 -->
+        <div class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+            即時市場面向評分
+            <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400; font-family: 'Inter', sans-serif;">（每分鐘更新）</span>
+            <span class="line"></span>
+        </div>
+        <div class="dimension-grid" id="dimension-grid">
+            <div class="glass-card dim-card no-data">載入中...</div>
+        </div>
+
+        <!-- 圖表 -->
+        <div class="charts-row">
+            <div class="glass-card chart-card">
+                <h3>四大面向評分走勢</h3>
+                <div class="chart-container">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-card chart-card">
+                <h3>綜合雷達圖（最新）</h3>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 股票深度估值 -->
+        <div class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            股票深度估值分析
+            <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400; font-family: 'Inter', sans-serif;">（每日 05:00 更新）</span>
+            <span class="line"></span>
+        </div>
+        <div class="stock-grid" id="stock-grid">
+            <div class="glass-card stock-card no-data">尚無估值資料，等待每日分析或手動觸發</div>
+        </div>
+
+        <!-- 股票估值雷達圖 -->
+        <div class="charts-row" id="stock-charts-row" style="display:none;">
+            <div class="glass-card chart-card" style="grid-column: span 2;">
+                <h3>各股票四維度評分對比</h3>
+                <div class="chart-container" style="height: 380px;">
+                    <canvas id="stockCompareChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 活動日誌 -->
+        <div class="section-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            分析活動紀錄
+            <span class="line"></span>
+        </div>
+        <div class="glass-card log-section" id="log-section">
+            <div class="no-data">載入中...</div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 全域變數 & 圖表全域設定 =====
+        let scoreChart = null;
+        let radarChart = null;
+        let stockCompareChart = null;
+
+        // 設定 Chart.js 全局字體與顏色
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+        
+        // 現代化的 tooltip
+        const tooltipOptions = {
+            backgroundColor: 'rgba(22, 25, 37, 0.9)',
+            titleFont: { family: "'Outfit', sans-serif", size: 14 },
+            bodyFont: { family: "'Inter', sans-serif", size: 13 },
+            padding: 12,
+            cornerRadius: 8,
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            boxPadding: 6
+        };
+
+        const DIM_COLORS = {
+            fundamental: { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', solid: 'rgba(59, 130, 246, 0.8)' },
+            technical:   { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', solid: 'rgba(139, 92, 246, 0.8)' },
+            sentiment:   { bg: 'rgba(245, 158, 11, 0.15)', border: '#f59e0b', solid: 'rgba(245, 158, 11, 0.8)' },
+            political:   { bg: 'rgba(239, 68, 68, 0.15)',  border: '#ef4444', solid: 'rgba(239, 68, 68, 0.8)' },
+        };
+        const DIM_NAMES = {
+            fundamental: '基本面',
+            technical: '技術面',
+            sentiment: '市場情緒',
+            political: '政治政策',
+        };
+
+        // ===== 時鐘 =====
+        function updateClock() {
+            const now = new Date();
+            const tw = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            document.getElementById('clock').textContent =
+                `台灣時間 ${tw.getHours().toString().padStart(2,'0')}:${tw.getMinutes().toString().padStart(2,'0')}:${tw.getSeconds().toString().padStart(2,'0')}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ===== 分數顏色 =====
+        function scoreColorClass(score) {
+            if (score < 0) return '';
+            if (score >= 61) return 'score-color-high';
+            if (score >= 41) return 'score-color-mid';
+            return 'score-color-low';
+        }
+        function recClass(rec) {
+            if (!rec) return '';
+            const r = rec.toLowerCase();
+            if (r.includes('buy')) return 'rec-buy';
+            if (r.includes('hold')) return 'rec-hold';
+            return 'rec-sell';
+        }
+        function trendClass(trend) {
+            if (!trend) return 'trend-neutral';
+            if (trend === 'up') return 'trend-up';
+            if (trend === 'down') return 'trend-down';
+            return 'trend-neutral';
+        }
+        function trendLabel(trend) {
+            if (trend === 'up') return '▲ 上升';
+            if (trend === 'down') return '▼ 下降';
+            return '― 持平';
+        }
+        function fmtTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts + 'Z');
+            return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit' });
+        }
+        function fmtDate(ts) {
+            if (!ts) return '';
+            const d = new Date(ts + 'Z');
+            return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        // ===== 面向卡片渲染 =====
+        function renderDimensionCards(data) {
+            const grid = document.getElementById('dimension-grid');
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div class="glass-card dim-card no-data">尚無分析資料，系統啟動後將自動開始</div>';
+                return;
+            }
+
+            const dims = ['fundamental', 'technical', 'sentiment', 'political'];
+            let html = '';
+            for (const dimId of dims) {
+                const item = data.find(d => d.dimension_id === dimId);
+                const colorHex = DIM_COLORS[dimId].border;
+
+                if (!item) {
+                    html += `<div class="glass-card dim-card" style="--dim-color: ${colorHex}">
+                        <div class="dim-header"><span class="dim-name">${DIM_NAMES[dimId]}</span></div>
+                        <div class="dim-score" style="color:var(--text-secondary); text-shadow:none;">--</div>
+                        <div class="dim-summary">等待分析...</div>
+                    </div>`;
+                    continue;
+                }
+
+                let factors = [];
+                try { factors = JSON.parse(item.key_factors || '[]'); } catch(e) { factors = []; }
+                let rawResp = {};
+                try { rawResp = JSON.parse(item.raw_response || '{}'); } catch(e) {}
+
+                html += `<div class="glass-card dim-card" style="--dim-color: ${colorHex}">
+                    <div class="dim-header">
+                        <span class="dim-name">${item.dimension_name}</span>
+                        <span class="dim-trend ${trendClass(rawResp.trend)}">${trendLabel(rawResp.trend)}</span>
+                    </div>
+                    <div class="dim-score ${scoreColorClass(item.score)}">${item.score >= 0 ? item.score : '--'}</div>
+                    <div class="dim-summary">${item.summary || ''}</div>
+                    <div class="dim-factors">
+                        ${factors.map(f => `<span class="factor-tag">${f}</span>`).join('')}
+                    </div>
+                    <div class="dim-time">更新: ${fmtTime(item.timestamp)}</div>
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        // ===== 股票估值卡片渲染 =====
+        function renderStockCards(data) {
+            const grid = document.getElementById('stock-grid');
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div class="glass-card stock-card no-data" style="grid-column: 1 / -1; min-height: 200px;">尚無估值資料，等待每日分析或手動觸發</div>';
+                document.getElementById('stock-charts-row').style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            for (const s of data) {
+                let risks = [], catalysts = [];
+                try { risks = JSON.parse(s.key_risks || '[]'); } catch(e) {}
+                try { catalysts = JSON.parse(s.key_catalysts || '[]'); } catch(e) {}
+
+                html += `<div class="glass-card stock-card">
+                    <div class="stock-header">
+                        <div class="ticker">${s.ticker}</div>
+                        <span class="recommendation ${recClass(s.recommendation)}">${s.recommendation || 'N/A'}</span>
+                    </div>
+                    <div class="company">${s.analysis_summary ? s.analysis_summary.split('。')[0] : ''}</div>
+                    
+                    <div class="overall-wrap">
+                        <div class="overall-score ${scoreColorClass(s.overall_score)}">${s.overall_score >= 0 ? s.overall_score : '--'}</div>
+                        <span style="font-size: 13px; color: var(--text-secondary);">/ 100</span>
+                    </div>
+                    
+                    <div class="target-price">🎯 目標價: <strong>${s.target_price_range || 'N/A'}</strong></div>
+                    
+                    <div class="sub-scores">
+                        <div class="sub-score"><span>基本面</span><span class="${scoreColorClass(s.fundamental_score)}">${s.fundamental_score >= 0 ? s.fundamental_score : '--'}</span></div>
+                        <div class="sub-score"><span>技術面</span><span class="${scoreColorClass(s.technical_score)}">${s.technical_score >= 0 ? s.technical_score : '--'}</span></div>
+                        <div class="sub-score"><span>情緒面</span><span class="${scoreColorClass(s.sentiment_score)}">${s.sentiment_score >= 0 ? s.sentiment_score : '--'}</span></div>
+                        <div class="sub-score"><span>政策面</span><span class="${scoreColorClass(s.political_score)}">${s.political_score >= 0 ? s.political_score : '--'}</span></div>
+                    </div>
+                    
+                    <div class="analysis-summary">${s.analysis_summary || ''}</div>
+                    <div class="val-time">分析: ${fmtDate(s.timestamp)}</div>
+                </div>`;
+            }
+            grid.innerHTML = html;
+
+            if (data.length > 0) {
+                document.getElementById('stock-charts-row').style.display = 'grid';
+                renderStockCompareChart(data);
+            }
+        }
+
+        // ===== 圖表 =====
+        function renderScoreChart(historyData) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            if (scoreChart) scoreChart.destroy();
+
+            const dims = ['fundamental', 'technical', 'sentiment', 'political'];
+
+            // 1. 過濾有效資料並按時間正序排列
+            const validData = historyData
+                .filter(d => d.score >= 0 && d.timestamp)
+                .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+            if (validData.length === 0) return;
+
+            // 2. 建立統一時間軸：收集所有唯一時間點並排序
+            const allTimestamps = [...new Set(validData.map(d => d.timestamp))].sort();
+            // 只取最近的 N 個時間點（避免過多資料）
+            const recentTimestamps = allTimestamps.slice(-60);
+            const labels = recentTimestamps.map(ts => fmtTime(ts));
+
+            // 3. 對每個面向，沿著統一時間軸填入分數
+            //    如果某個時間點該面向沒有資料，就「攜帶上一個已知分數」前進
+            const datasets = [];
+            for (const dimId of dims) {
+                // 建立此面向的 timestamp -> score 對應表
+                const scoreMap = {};
+                validData.filter(d => d.dimension_id === dimId).forEach(d => {
+                    scoreMap[d.timestamp] = d.score;
+                });
+
+                // 沿著時間軸生成連續資料，遇到空缺就沿用上一個值
+                let lastKnown = null;
+                const values = recentTimestamps.map(ts => {
+                    if (scoreMap[ts] !== undefined) {
+                        lastKnown = scoreMap[ts];
+                    }
+                    return lastKnown; // null 表示該面向還沒有任何資料
+                });
+
+                datasets.push({
+                    label: DIM_NAMES[dimId],
+                    data: values,
+                    borderColor: DIM_COLORS[dimId].border,
+                    backgroundColor: DIM_COLORS[dimId].bg,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    borderWidth: 2.5,
+                    fill: false,
+                    spanGaps: true, // 跳過 null 並連接線段
+                });
+            }
+
+            scoreChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: {
+                            ...tooltipOptions,
+                            filter: (item) => item.raw !== null, // 不顯示 null 的 tooltip
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { maxRotation: 45, maxTicksLimit: 10, autoSkip: true }, 
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } 
+                        },
+                        y: { 
+                            min: 0, max: 100, 
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false, borderDash: [5, 5] } 
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRadarChart(latestData) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (radarChart) radarChart.destroy();
+
+            const dims = ['fundamental', 'technical', 'sentiment', 'political'];
+            const labels = dims.map(d => DIM_NAMES[d]);
+            const scores = dims.map(d => {
+                const item = latestData.find(i => i.dimension_id === d);
+                return item && item.score >= 0 ? item.score : 0;
+            });
+
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '目前評分',
+                        data: scores,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#3b82f6',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: tooltipOptions
+                    },
+                    scales: {
+                        r: {
+                            min: 0, max: 100,
+                            ticks: { display: false },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#f8fafc', font: { family: "'Outfit', sans-serif", size: 14, weight: '500' } },
+                            angleLines: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStockCompareChart(stockData) {
+            const ctx = document.getElementById('stockCompareChart').getContext('2d');
+            if (stockCompareChart) stockCompareChart.destroy();
+
+            const tickers = stockData.map(s => s.ticker);
+            
+            stockCompareChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: tickers,
+                    datasets: [
+                        { label: '基本面', data: stockData.map(s => s.fundamental_score), backgroundColor: DIM_COLORS.fundamental.solid, borderRadius: 4 },
+                        { label: '技術面', data: stockData.map(s => s.technical_score), backgroundColor: DIM_COLORS.technical.solid, borderRadius: 4 },
+                        { label: '情緒面', data: stockData.map(s => s.sentiment_score), backgroundColor: DIM_COLORS.sentiment.solid, borderRadius: 4 },
+                        { label: '政策面', data: stockData.map(s => s.political_score), backgroundColor: DIM_COLORS.political.solid, borderRadius: 4 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: tooltipOptions
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#f8fafc', font: { family: "'Outfit', sans-serif", size: 14, weight: '600' } }, 
+                            grid: { display: false } 
+                        },
+                        y: { 
+                            min: 0, max: 100, 
+                            grid: { color: 'rgba(255,255,255,0.05)', borderDash: [5, 5] } 
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===== 活動日誌 =====
+        function renderLogSection(data) {
+            const section = document.getElementById('log-section');
+            if (!data || data.length === 0) {
+                section.innerHTML = '<div class="no-data">尚無分析紀錄</div>';
+                return;
+            }
+
+            let html = '';
+            for (const item of data.slice(0, 50)) {
+                const dimClass = `log-dim-${item.dimension_id}`;
+                html += `<div class="log-item">
+                    <span class="log-time">${fmtTime(item.timestamp)}</span>
+                    <span class="log-dim ${dimClass}">${item.dimension_name}</span>
+                    <span class="log-score ${scoreColorClass(item.score)}">${item.score >= 0 ? item.score : '--'}</span>
+                    <span style="color:var(--text-secondary); line-height: 1.4;">${item.summary || ''}</span>
+                </div>`;
+            }
+            section.innerHTML = html;
+        }
+
+        // ===== API 呼叫 =====
+        async function fetchJSON(url) {
+            const resp = await fetch(url);
+            return resp.json();
+        }
+
+        function safeRender(name, fn) {
+            try { fn(); } catch(e) { console.error('Render error [' + name + ']:', e); }
+        }
+
+        async function refreshAll() {
+            let latestRes, historyRes, valRes;
+
+            try { latestRes = await fetchJSON('/api/realtime/latest'); } catch(e) { console.error('API /realtime/latest:', e); }
+            try { historyRes = await fetchJSON('/api/realtime/history?limit=200'); } catch(e) { console.error('API /realtime/history:', e); }
+            try { valRes = await fetchJSON('/api/valuation/latest'); } catch(e) { console.error('API /valuation/latest:', e); }
+
+            if (latestRes && latestRes.success) {
+                safeRender('dimensionCards', () => renderDimensionCards(latestRes.data));
+                safeRender('radarChart', () => renderRadarChart(latestRes.data));
+            }
+            if (historyRes && historyRes.success) {
+                safeRender('scoreChart', () => renderScoreChart(historyRes.data));
+                safeRender('logSection', () => renderLogSection(historyRes.data));
+            }
+            if (valRes && valRes.success) {
+                safeRender('stockCards', () => renderStockCards(valRes.data));
+            }
+        }
+
+        // ===== 背景任務輪詢 =====
+        async function pollTaskStatus(taskKey, btn, originalText, interval = 5000) {
+            const poll = async () => {
+                try {
+                    const res = await fetchJSON('/api/task/status');
+                    if (res.success && res.data[taskKey]) {
+                        if (res.data[taskKey].running) {
+                            await refreshAll();
+                            setTimeout(poll, interval);
+                        } else {
+                            await refreshAll();
+                            btn.disabled = false;
+                            btn.classList.remove('loading');
+                            if (res.data[taskKey].last_error) {
+                                btn.innerHTML = originalText + ' (失敗)';
+                            } else {
+                                btn.innerHTML = originalText;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error('Poll error:', e);
+                    setTimeout(poll, interval);
+                }
+            };
+            setTimeout(poll, interval);
+        }
+
+        async function triggerRealtime() {
+            const btn = document.getElementById('btn-realtime');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('loading');
+            
+            try {
+                const res = await (await fetch('/api/trigger/realtime', { method: 'POST' })).json();
+                if (res.success) {
+                    pollTaskStatus('realtime', btn, originalHTML, 3000);
+                } else {
+                    btn.textContent = res.message || '請稍候再試';
+                    setTimeout(() => { btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = originalHTML; }, 3000);
+                }
+            } catch(e) {
+                console.error(e);
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function triggerValuation() {
+            const btn = document.getElementById('btn-valuation');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('loading');
+            
+            try {
+                const res = await (await fetch('/api/trigger/valuation', { method: 'POST' })).json();
+                if (res.success) {
+                    pollTaskStatus('valuation', btn, originalHTML, 8000);
+                } else {
+                    btn.textContent = res.message || '請稍候再試';
+                    setTimeout(() => { btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = originalHTML; }, 3000);
+                }
+            } catch(e) {
+                console.error(e);
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        // ===== 下次分析倒計時 =====
+        let _nextRunTime = null;
+
+        async function updateCountdown() {
+            try {
+                const res = await fetchJSON('/api/scheduler/status');
+                if (res.success && res.data.jobs) {
+                    // 找到即時分析的下次執行時間
+                    const realtimeJob = res.data.jobs.find(j => j.id === 'realtime_analysis');
+                    if (realtimeJob && realtimeJob.next_run && realtimeJob.next_run !== 'N/A') {
+                        _nextRunTime = new Date(realtimeJob.next_run);
+                    }
+                }
+            } catch(e) {
+                console.error('Countdown fetch error:', e);
+            }
+        }
+
+        function renderCountdown() {
+            const el = document.getElementById('next-analysis');
+            const textEl = document.getElementById('countdown-text');
+            if (!_nextRunTime || !el || !textEl) return;
+
+            const now = new Date();
+            const diff = _nextRunTime - now;
+
+            if (diff <= 0) {
+                textEl.textContent = '分析進行中...';
+                el.style.display = 'flex';
+                // 時間到了就重新取得下次執行時間
+                updateCountdown();
+                return;
+            }
+
+            const secs = Math.floor(diff / 1000);
+            if (secs >= 60) {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                textEl.textContent = `下次分析 ${m}:${s.toString().padStart(2, '0')}`;
+            } else {
+                textEl.textContent = `下次分析 ${secs}s`;
+            }
+            el.style.display = 'flex';
+        }
+
+        // ===== 初始化 =====
+        refreshAll();
+        updateCountdown();
+        setInterval(refreshAll, 15000);
+        setInterval(renderCountdown, 1000);
+        setInterval(updateCountdown, 30000); // 每30秒更新一次排程狀態
+    </script>
+</body>
+</html>
