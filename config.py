@@ -10,15 +10,20 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 # ===== MiniMax API 設定 =====
 MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
 MINIMAX_BASE_URL = "https://api.minimax.io/v1/text/chatcompletion_v2"
-MODEL_REALTIME = "MiniMax-M2.5"             # 即時分析用（highspeed 需升級方案才可用）
+MODEL_REALTIME = "MiniMax-M2.5"             # 即時分析用
 MODEL_VALUATION = "MiniMax-M2.5"            # 股票估值分析用
 
-# ===== 爬蟲目標 =====
-JIN10_URL = "https://www.jin10.com/"
-YAHOO_URL = "https://tw.yahoo.com/"
+# ===== 爬蟲來源 =====
+JIN10_API_URL = "https://flash-api.jin10.com/get_flash_list"
+YAHOO_FINANCE_URL = "https://finance.yahoo.com/"
+FINVIZ_NEWS_URL = "https://finviz.com/news.ashx"
 
-# ===== 分析標的 =====
-STOCK_TICKERS = ["QQQ", "GOOG", "MSFT", "NVDA", "TSLA"]
+# ===== 分析標的（預設值，可從網頁動態新增）=====
+DEFAULT_STOCK_TICKERS = ["QQQ", "GOOG", "MSFT", "NVDA", "TSLA"]
+
+# 向後相容：其他模組仍可 import STOCK_TICKERS
+# 實際運行時會從 data_store 讀取動態列表
+STOCK_TICKERS = DEFAULT_STOCK_TICKERS.copy()
 
 # ===== 四大面向（每分鐘輪替）=====
 DIMENSIONS = [

@@ -5,7 +5,7 @@ import sqlite3
 import json
 import os
 from datetime import datetime
-from config import DB_PATH, DATA_DIR, DATA_RETENTION_DAYS
+from config import DB_PATH, DATA_DIR, DATA_RETENTION_DAYS, DEFAULT_STOCK_TICKERS
 
 
 def get_db():
@@ -69,9 +69,91 @@ def init_db():
         )
     """)
 
+    # 自訂股票代號表（動態新增/刪除）
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custom_tickers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker TEXT NOT NULL UNIQUE,
+            added_at TEXT DEFAULT (datetime('now')),
+            is_active INTEGER DEFAULT 1
+        )
+    """)
+
+    # 初始化預設股票代號
+    for ticker in DEFAULT_STOCK_TICKERS:
+        try:
+            cursor.execute(
+                "INSERT OR IGNORE INTO custom_tickers (ticker) VALUES (?)",
+                (ticker.upper(),)
+            )
+        except:
+            pass
+
     conn.commit()
     conn.close()
 
+
+# ===== 股票代號管理 =====
+
+def get_active_tickers():
+    """取得目前所有啟用的股票代號"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT ticker FROM custom_tickers WHERE is_active = 1 ORDER BY added_at")
+    tickers = [row["ticker"] for row in cursor.fetchall()]
+    conn.close()
+    return tickers if tickers else DEFAULT_STOCK_TICKERS
+
+
+def add_ticker(ticker):
+    """新增股票代號"""
+    ticker = ticker.strip().upper()
+    if not ticker:
+        return False, "股票代號不可為空"
+    if len(ticker) > 10:
+        return False, "股票代號過長"
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        # 檢查是否已存在（包括停用的）
+        cursor.execute("SELECT id, is_active FROM custom_tickers WHERE ticker = ?", (ticker,))
+        existing = cursor.fetchone()
+        if existing:
+            if existing["is_active"]:
+                conn.close()
+                return False, f"{ticker} 已在追蹤列表中"
+            else:
+                # 重新啟用
+                cursor.execute("UPDATE custom_tickers SET is_active = 1 WHERE ticker = ?", (ticker,))
+                conn.commit()
+                conn.close()
+                return True, f"已重新啟用 {ticker}"
+        else:
+            cursor.execute("INSERT INTO custom_tickers (ticker) VALUES (?)", (ticker,))
+            conn.commit()
+            conn.close()
+            return True, f"已新增 {ticker}"
+    except Exception as e:
+        conn.close()
+        return False, f"新增失敗: {e}"
+
+
+def remove_ticker(ticker):
+    """移除股票代號（軟刪除）"""
+    ticker = ticker.strip().upper()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE custom_tickers SET is_active = 0 WHERE ticker = ?", (ticker,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    if affected > 0:
+        return True, f"已移除 {ticker}"
+    return False, f"{ticker} 不在追蹤列表中"
+
+
+# ===== 即時分析評分 =====
 
 def save_realtime_score(dimension_id, dimension_name, score, summary, key_factors, raw_news, raw_response):
     """儲存即時分析評分"""
@@ -121,6 +203,8 @@ def save_news_snapshot(source, content):
     conn.commit()
     conn.close()
 
+
+# ===== 查詢函數 =====
 
 def get_recent_scores(limit=100):
     """取得最近的即時評分"""
@@ -222,4 +306,3 @@ def cleanup_old_data():
     conn.commit()
     conn.close()
     return total_deleted
-

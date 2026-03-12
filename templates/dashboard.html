@@ -72,10 +72,10 @@
             z-index: 100;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         }
-        .header h1 { 
-            font-family: 'Outfit', sans-serif; 
-            font-size: 24px; 
-            font-weight: 700; 
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
             background: linear-gradient(135deg, #fff, #94a3b8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -160,7 +160,7 @@
             background: linear-gradient(90deg, var(--dim-color, var(--accent-blue)), transparent);
             opacity: 0.8;
         }
-        
+
         .dim-header {
             display: flex;
             justify-content: space-between;
@@ -258,32 +258,93 @@
         }
         .chart-container { position: relative; height: 300px; }
 
-        /* 股票估值卡片 */
-        .stock-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
+        /* ===== 股票估值 - 水平滑動器 ===== */
+        .stock-slider-wrapper {
+            position: relative;
             margin-bottom: 48px;
         }
+        .stock-slider {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 8px 4px 16px 4px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .stock-slider::-webkit-scrollbar { display: none; }
+
         .stock-card {
+            min-width: 320px;
+            max-width: 360px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
         }
         .stock-card:hover { border-color: var(--accent-purple); box-shadow: 0 15px 35px rgba(0,0,0,0.3), 0 0 25px rgba(139, 92, 246, 0.15); }
-        
+
+        .slider-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.3s;
+            font-size: 18px;
+        }
+        .slider-nav:hover {
+            background: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        .slider-nav.prev { left: -16px; }
+        .slider-nav.next { right: -16px; }
+
         .stock-header {
             display: flex; justify-content: space-between; align-items: flex-start;
         }
-        
+        .stock-header-left { display: flex; flex-direction: column; }
+
         .ticker {
             font-family: 'Outfit', sans-serif;
             font-size: 24px;
             font-weight: 800;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             background: linear-gradient(90deg, #fff, #cbd5e1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .stock-price-info {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .stock-price {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .stock-change {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .change-up { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .change-down { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .change-flat { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
         .company {
             font-size: 13px;
             color: var(--text-secondary);
@@ -339,11 +400,11 @@
             flex-direction: column;
             gap: 4px;
         }
-        .sub-score span:last-child { 
+        .sub-score span:last-child {
             font-family: 'Outfit', sans-serif;
             font-size: 16px;
-            font-weight: 700; 
-            color: var(--text-primary); 
+            font-weight: 700;
+            color: var(--text-primary);
         }
         .analysis-summary {
             font-size: 13px;
@@ -370,6 +431,7 @@
             display: flex;
             gap: 16px;
             margin-bottom: 32px;
+            flex-wrap: wrap;
         }
         .btn {
             position: relative;
@@ -394,14 +456,14 @@
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
             transition: all 0.4s ease;
         }
-        .btn:hover { 
-            background: rgba(255, 255, 255, 0.08); 
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255,255,255,0.2);
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .btn:hover::before { left: 150%; }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             border: none;
@@ -425,13 +487,64 @@
         }
         @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
+        /* 股票代號管理 */
+        .ticker-manager {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .ticker-input {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            outline: none;
+            width: 140px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ticker-input::placeholder { color: var(--text-secondary); font-weight: 400; text-transform: none; letter-spacing: 0; }
+        .ticker-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
+
+        .ticker-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .ticker-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .ticker-tag .remove-btn {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .ticker-tag .remove-btn:hover { opacity: 1; color: var(--accent-red); }
+
         /* 活動日誌 */
         .log-section {
             max-height: 400px;
             overflow-y: auto;
             padding: 16px 24px;
         }
-        /* Custom Scrollbar for logs */
         .log-section::-webkit-scrollbar { width: 6px; }
         .log-section::-webkit-scrollbar-track { background: transparent; }
         .log-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
@@ -448,12 +561,12 @@
         }
         .log-item:hover { background: rgba(255,255,255,0.02); }
         .log-item:last-child { border-bottom: none; }
-        
-        .log-item .log-time { 
+
+        .log-item .log-time {
             font-family: 'Outfit', sans-serif;
-            color: var(--text-secondary); 
-            white-space: nowrap; 
-            min-width: 70px; 
+            color: var(--text-secondary);
+            white-space: nowrap;
+            min-width: 70px;
             font-size: 12px;
         }
         .log-item .log-dim {
@@ -488,7 +601,6 @@
             align-items: center;
             gap: 12px;
             width: 100%;
-            grid-column: 1 / -1;
         }
         .no-data::before {
             content: ''; display: block; width: 48px; height: 48px;
@@ -497,48 +609,22 @@
             opacity: 0.5;
         }
 
-        @media (max-width: 1400px) {
-            .stock-grid { grid-template-columns: repeat(3, 1fr); }
+        /* Toast 通知 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+            backdrop-filter: blur(12px);
         }
-        @media (max-width: 1200px) {
-            .dimension-grid { grid-template-columns: repeat(2, 1fr); }
-            .stock-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 768px) {
-            .header { padding: 14px 16px; flex-direction: column; gap: 10px; }
-            .header h1 { font-size: 18px; }
-            .header .status { gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 12px; }
-            .container { padding: 16px 12px; }
-            .section-title { font-size: 17px; gap: 10px; }
-            .section-title svg { width: 20px; height: 20px; }
-            .section-title span[style] { font-size: 12px !important; }
-            .dimension-grid, .charts-row, .stock-grid { grid-template-columns: 1fr; gap: 14px; }
-            .glass-card { padding: 18px 16px; border-radius: 12px; }
-            .dim-score { font-size: 40px; }
-            .dim-summary { font-size: 12px; min-height: auto; }
-            .chart-container { height: 220px; }
-            .controls { flex-wrap: wrap; gap: 10px; }
-            .btn { flex: 1 1 100%; text-align: center; justify-content: center; padding: 12px 16px; font-size: 13px; }
-            .btn svg { width: 14px; height: 14px; }
-            .ticker { font-size: 20px; }
-            .overall-score { font-size: 36px; }
-            .sub-scores { gap: 8px; padding: 10px; }
-            .sub-score span:last-child { font-size: 14px; }
-            .target-price { font-size: 13px; padding: 6px 10px; }
-            .log-section { padding: 12px 14px; max-height: 300px; }
-            .log-item { gap: 10px; padding: 10px 0; font-size: 12px; flex-wrap: wrap; }
-            .log-item .log-time { min-width: 55px; font-size: 11px; }
-            .log-item .log-dim { min-width: 60px; font-size: 10px; padding: 3px 8px; }
-            .log-score { font-size: 14px; }
-            .no-data { padding: 40px 20px; font-size: 13px; }
-        }
-        @media (max-width: 480px) {
-            .header h1 { font-size: 16px; }
-            .container { padding: 12px 8px; }
-            .dim-score { font-size: 32px; }
-            .overall-score { font-size: 28px; }
-            .stock-header { flex-direction: column; gap: 8px; }
-        }
+        .toast-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .toast-error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         /* 下次分析倒計時 */
         .countdown-pill {
@@ -553,6 +639,27 @@
             font-weight: 500;
         }
         .countdown-pill svg { opacity: 0.8; }
+
+        @media (max-width: 1200px) {
+            .dimension-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .header { padding: 14px 16px; flex-direction: column; gap: 10px; }
+            .header h1 { font-size: 18px; }
+            .header .status { gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 12px; }
+            .container { padding: 16px 12px; }
+            .section-title { font-size: 17px; gap: 10px; }
+            .dimension-grid, .charts-row { grid-template-columns: 1fr; gap: 14px; }
+            .glass-card { padding: 18px 16px; border-radius: 12px; }
+            .dim-score { font-size: 40px; }
+            .chart-container { height: 220px; }
+            .controls { gap: 10px; }
+            .btn { flex: 1 1 100%; text-align: center; justify-content: center; padding: 12px 16px; font-size: 13px; }
+            .stock-card { min-width: 280px; }
+            .cal-item { grid-template-columns: 50px 20px 1fr; font-size: 12px; }
+            .cal-prev, .cal-forecast, .cal-actual { display: none; }
+            .ticker-manager { flex-direction: column; align-items: flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -621,11 +728,28 @@
             <span style="font-size: 14px; color: var(--text-secondary); font-weight: 400; font-family: 'Inter', sans-serif;">（每日 05:00 更新）</span>
             <span class="line"></span>
         </div>
-        <div class="stock-grid" id="stock-grid">
-            <div class="glass-card stock-card no-data">尚無估值資料，等待每日分析或手動觸發</div>
+
+        <!-- 股票代號管理 -->
+        <div class="ticker-manager">
+            <input type="text" class="ticker-input" id="ticker-input" placeholder="輸入代號..." maxlength="10"
+                onkeydown="if(event.key==='Enter') addTicker()">
+            <button class="btn btn-primary" onclick="addTicker()" style="padding: 8px 16px; font-size: 13px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                新增
+            </button>
+            <div class="ticker-tags" id="ticker-tags"></div>
         </div>
 
-        <!-- 股票估值雷達圖 -->
+        <!-- 股票卡片（水平滑動器）-->
+        <div class="stock-slider-wrapper">
+            <button class="slider-nav prev" onclick="slideStocks(-1)">&#8249;</button>
+            <div class="stock-slider" id="stock-slider">
+                <div class="glass-card stock-card no-data">尚無估值資料，等待每日分析或手動觸發</div>
+            </div>
+            <button class="slider-nav next" onclick="slideStocks(1)">&#8250;</button>
+        </div>
+
+        <!-- 股票估值對比圖 -->
         <div class="charts-row" id="stock-charts-row" style="display:none;">
             <div class="glass-card chart-card" style="grid-column: span 2;">
                 <h3>各股票四維度評分對比</h3>
@@ -651,13 +775,13 @@
         let scoreChart = null;
         let radarChart = null;
         let stockCompareChart = null;
+        let _stockPrices = {};
 
         // 設定 Chart.js 全局字體與顏色
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.font.family = "'Inter', sans-serif";
         Chart.defaults.font.size = 12;
-        
-        // 現代化的 tooltip
+
         const tooltipOptions = {
             backgroundColor: 'rgba(22, 25, 37, 0.9)',
             titleFont: { family: "'Outfit', sans-serif", size: 14 },
@@ -682,7 +806,7 @@
             political: '政治政策',
         };
 
-        // ===== 時鐘 =====
+        // ===== 工具函數 =====
         function updateClock() {
             const now = new Date();
             const tw = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
@@ -692,7 +816,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // ===== 分數顏色 =====
         function scoreColorClass(score) {
             if (score < 0) return '';
             if (score >= 61) return 'score-color-high';
@@ -726,6 +849,18 @@
             if (!ts) return '';
             const d = new Date(ts + 'Z');
             return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+        function changeClass(pct) {
+            if (!pct || pct === 'N/A') return 'change-flat';
+            return pct.startsWith('-') ? 'change-down' : (pct.startsWith('+') ? 'change-up' : 'change-flat');
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         // ===== 面向卡片渲染 =====
@@ -772,11 +907,11 @@
             grid.innerHTML = html;
         }
 
-        // ===== 股票估值卡片渲染 =====
+        // ===== 股票估值卡片渲染（含股價）=====
         function renderStockCards(data) {
-            const grid = document.getElementById('stock-grid');
+            const slider = document.getElementById('stock-slider');
             if (!data || data.length === 0) {
-                grid.innerHTML = '<div class="glass-card stock-card no-data" style="grid-column: 1 / -1; min-height: 200px;">尚無估值資料，等待每日分析或手動觸發</div>';
+                slider.innerHTML = '<div class="glass-card stock-card no-data">尚無估值資料，等待每日分析或手動觸發</div>';
                 document.getElementById('stock-charts-row').style.display = 'none';
                 return;
             }
@@ -787,37 +922,122 @@
                 try { risks = JSON.parse(s.key_risks || '[]'); } catch(e) {}
                 try { catalysts = JSON.parse(s.key_catalysts || '[]'); } catch(e) {}
 
+                // 股價資訊
+                const priceInfo = _stockPrices[s.ticker] || {};
+                const price = priceInfo.price || 'N/A';
+                const changePct = priceInfo.change_pct || 'N/A';
+
                 html += `<div class="glass-card stock-card">
                     <div class="stock-header">
-                        <div class="ticker">${s.ticker}</div>
+                        <div class="stock-header-left">
+                            <div class="ticker">${s.ticker}</div>
+                            <div class="stock-price-info">
+                                <span class="stock-price">${price !== 'N/A' ? '$' + price : '--'}</span>
+                                <span class="stock-change ${changeClass(changePct)}">${changePct !== 'N/A' ? changePct : '--'}</span>
+                            </div>
+                        </div>
                         <span class="recommendation ${recClass(s.recommendation)}">${s.recommendation || 'N/A'}</span>
                     </div>
                     <div class="company">${s.analysis_summary ? s.analysis_summary.split('。')[0] : ''}</div>
-                    
+
                     <div class="overall-wrap">
                         <div class="overall-score ${scoreColorClass(s.overall_score)}">${s.overall_score >= 0 ? s.overall_score : '--'}</div>
                         <span style="font-size: 13px; color: var(--text-secondary);">/ 100</span>
                     </div>
-                    
-                    <div class="target-price">🎯 目標價: <strong>${s.target_price_range || 'N/A'}</strong></div>
-                    
+
+                    <div class="target-price">目標價: <strong>${s.target_price_range || 'N/A'}</strong></div>
+
                     <div class="sub-scores">
                         <div class="sub-score"><span>基本面</span><span class="${scoreColorClass(s.fundamental_score)}">${s.fundamental_score >= 0 ? s.fundamental_score : '--'}</span></div>
                         <div class="sub-score"><span>技術面</span><span class="${scoreColorClass(s.technical_score)}">${s.technical_score >= 0 ? s.technical_score : '--'}</span></div>
                         <div class="sub-score"><span>情緒面</span><span class="${scoreColorClass(s.sentiment_score)}">${s.sentiment_score >= 0 ? s.sentiment_score : '--'}</span></div>
                         <div class="sub-score"><span>政策面</span><span class="${scoreColorClass(s.political_score)}">${s.political_score >= 0 ? s.political_score : '--'}</span></div>
                     </div>
-                    
+
                     <div class="analysis-summary">${s.analysis_summary || ''}</div>
                     <div class="val-time">分析: ${fmtDate(s.timestamp)}</div>
                 </div>`;
             }
-            grid.innerHTML = html;
+            slider.innerHTML = html;
 
             if (data.length > 0) {
                 document.getElementById('stock-charts-row').style.display = 'grid';
                 renderStockCompareChart(data);
             }
+        }
+
+        // ===== 股票滑動器控制 =====
+        function slideStocks(direction) {
+            const slider = document.getElementById('stock-slider');
+            const cardWidth = 340;
+            slider.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+        }
+
+        // ===== 股票代號管理 =====
+        async function loadTickers() {
+            try {
+                const res = await fetchJSON('/api/tickers');
+                if (res.success) {
+                    renderTickerTags(res.data);
+                }
+            } catch(e) { console.error('Load tickers error:', e); }
+        }
+
+        function renderTickerTags(tickers) {
+            const container = document.getElementById('ticker-tags');
+            container.innerHTML = tickers.map(t =>
+                `<span class="ticker-tag">${t}<span class="remove-btn" onclick="removeTicker('${t}')">&times;</span></span>`
+            ).join('');
+        }
+
+        async function addTicker() {
+            const input = document.getElementById('ticker-input');
+            const ticker = input.value.trim().toUpperCase();
+            if (!ticker) return;
+
+            try {
+                const res = await (await fetch('/api/tickers/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker })
+                })).json();
+
+                showToast(res.message, res.success ? 'success' : 'error');
+                if (res.success) {
+                    input.value = '';
+                    loadTickers();
+                    loadPrices();
+                }
+            } catch(e) {
+                showToast('新增失敗: ' + e.message, 'error');
+            }
+        }
+
+        async function removeTicker(ticker) {
+            try {
+                const res = await (await fetch('/api/tickers/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker })
+                })).json();
+
+                showToast(res.message, res.success ? 'success' : 'error');
+                if (res.success) {
+                    loadTickers();
+                }
+            } catch(e) {
+                showToast('移除失敗: ' + e.message, 'error');
+            }
+        }
+
+        // ===== 股價載入 =====
+        async function loadPrices() {
+            try {
+                const res = await fetchJSON('/api/prices');
+                if (res.success) {
+                    _stockPrices = res.data;
+                }
+            } catch(e) { console.error('Load prices error:', e); }
         }
 
         // ===== 圖表 =====
@@ -826,37 +1046,29 @@
             if (scoreChart) scoreChart.destroy();
 
             const dims = ['fundamental', 'technical', 'sentiment', 'political'];
-
-            // 1. 過濾有效資料並按時間正序排列
             const validData = historyData
                 .filter(d => d.score >= 0 && d.timestamp)
                 .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
             if (validData.length === 0) return;
 
-            // 2. 建立統一時間軸：收集所有唯一時間點並排序
             const allTimestamps = [...new Set(validData.map(d => d.timestamp))].sort();
-            // 只取最近的 N 個時間點（避免過多資料）
             const recentTimestamps = allTimestamps.slice(-60);
             const labels = recentTimestamps.map(ts => fmtTime(ts));
 
-            // 3. 對每個面向，沿著統一時間軸填入分數
-            //    如果某個時間點該面向沒有資料，就「攜帶上一個已知分數」前進
             const datasets = [];
             for (const dimId of dims) {
-                // 建立此面向的 timestamp -> score 對應表
                 const scoreMap = {};
                 validData.filter(d => d.dimension_id === dimId).forEach(d => {
                     scoreMap[d.timestamp] = d.score;
                 });
 
-                // 沿著時間軸生成連續資料，遇到空缺就沿用上一個值
                 let lastKnown = null;
                 const values = recentTimestamps.map(ts => {
                     if (scoreMap[ts] !== undefined) {
                         lastKnown = scoreMap[ts];
                     }
-                    return lastKnown; // null 表示該面向還沒有任何資料
+                    return lastKnown;
                 });
 
                 datasets.push({
@@ -869,7 +1081,7 @@
                     pointHoverRadius: 5,
                     borderWidth: 2.5,
                     fill: false,
-                    spanGaps: true, // 跳過 null 並連接線段
+                    spanGaps: true,
                 });
             }
 
@@ -882,20 +1094,11 @@
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
-                        tooltip: {
-                            ...tooltipOptions,
-                            filter: (item) => item.raw !== null, // 不顯示 null 的 tooltip
-                        }
+                        tooltip: { ...tooltipOptions, filter: (item) => item.raw !== null }
                     },
                     scales: {
-                        x: { 
-                            ticks: { maxRotation: 45, maxTicksLimit: 10, autoSkip: true }, 
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } 
-                        },
-                        y: { 
-                            min: 0, max: 100, 
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false, borderDash: [5, 5] } 
-                        }
+                        x: { ticks: { maxRotation: 45, maxTicksLimit: 10, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } },
+                        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false, borderDash: [5, 5] } }
                     }
                 }
             });
@@ -933,10 +1136,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: tooltipOptions
-                    },
+                    plugins: { legend: { display: false }, tooltip: tooltipOptions },
                     scales: {
                         r: {
                             min: 0, max: 100,
@@ -955,7 +1155,7 @@
             if (stockCompareChart) stockCompareChart.destroy();
 
             const tickers = stockData.map(s => s.ticker);
-            
+
             stockCompareChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -970,19 +1170,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
+                    plugins: {
                         legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
                         tooltip: tooltipOptions
                     },
                     scales: {
-                        x: { 
-                            ticks: { color: '#f8fafc', font: { family: "'Outfit', sans-serif", size: 14, weight: '600' } }, 
-                            grid: { display: false } 
-                        },
-                        y: { 
-                            min: 0, max: 100, 
-                            grid: { color: 'rgba(255,255,255,0.05)', borderDash: [5, 5] } 
-                        }
+                        x: { ticks: { color: '#f8fafc', font: { family: "'Outfit', sans-serif", size: 14, weight: '600' } }, grid: { display: false } },
+                        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)', borderDash: [5, 5] } }
                     }
                 }
             });
@@ -1072,7 +1266,7 @@
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
             btn.classList.add('loading');
-            
+
             try {
                 const res = await (await fetch('/api/trigger/realtime', { method: 'POST' })).json();
                 if (res.success) {
@@ -1094,7 +1288,7 @@
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
             btn.classList.add('loading');
-            
+
             try {
                 const res = await (await fetch('/api/trigger/valuation', { method: 'POST' })).json();
                 if (res.success) {
@@ -1118,7 +1312,6 @@
             try {
                 const res = await fetchJSON('/api/scheduler/status');
                 if (res.success && res.data.jobs) {
-                    // 找到即時分析的下次執行時間
                     const realtimeJob = res.data.jobs.find(j => j.id === 'realtime_analysis');
                     if (realtimeJob && realtimeJob.next_run && realtimeJob.next_run !== 'N/A') {
                         _nextRunTime = new Date(realtimeJob.next_run);
@@ -1140,7 +1333,6 @@
             if (diff <= 0) {
                 textEl.textContent = '分析進行中...';
                 el.style.display = 'flex';
-                // 時間到了就重新取得下次執行時間
                 updateCountdown();
                 return;
             }
@@ -1157,11 +1349,14 @@
         }
 
         // ===== 初始化 =====
+        loadTickers();
+        loadPrices();
         refreshAll();
         updateCountdown();
         setInterval(refreshAll, 15000);
         setInterval(renderCountdown, 1000);
-        setInterval(updateCountdown, 30000); // 每30秒更新一次排程狀態
+        setInterval(updateCountdown, 30000);
+        setInterval(loadPrices, 300000);  // 每5分鐘更新股價
     </script>
 </body>
 </html>
