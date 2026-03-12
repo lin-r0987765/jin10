@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from config import DIMENSIONS, STOCK_TICKERS, MODEL_REALTIME, MODEL_VALUATION
 from minimax_client import call_minimax, parse_json_response
-from scraper import get_all_news
+from scraper import get_all_news, fetch_stock_prices
 from data_store import save_realtime_score, save_stock_valuation, save_news_snapshot, get_recent_scores_by_dimension
 
 logger = logging.getLogger(__name__)
@@ -83,12 +83,29 @@ def build_realtime_prompt(dimension, news_text, previous_scores=None):
 請務必只回傳 JSON，不要有其他說明文字。"""
 
 
-def build_valuation_prompt(ticker):
+def build_valuation_prompt(ticker, price_data=None):
     """
     建構股票深度估值的 prompt
+    price_data: 即時股價資訊 dict，包含 price, change_pct, high_52w, low_52w 等
     """
-    return f"""你是一位頂級的股票研究分析師。請對股票代號 {ticker} 進行全面深度估值分析。
+    # 建構即時市場數據區塊
+    market_data_block = ""
+    if price_data:
+        market_data_block = f"""\n【即時市場數據 - 截至 {datetime.now().strftime('%Y-%m-%d %H:%M')}】
+- 目前股價: ${price_data.get('price', 'N/A')}
+- 今日漲跌: {price_data.get('change_pct', 'N/A')}
+- 52週最高: ${price_data.get('high_52w', 'N/A')}
+- 52週最低: ${price_data.get('low_52w', 'N/A')}
+- 本益比(P/E): {price_data.get('pe_ratio', 'N/A')}
+- 市值: {_format_market_cap(price_data.get('market_cap', 'N/A'))}
+- 成交量: {price_data.get('volume', 'N/A')}
 
+重要：上面的即時市場數據是透過 Yahoo Finance API 取得的最新真實數據，請以此為基準進行估值分析。
+你的 current_price_estimate 必須使用上面提供的「目前股價」，不要使用你訓練資料中的舊價格。
+"""
+
+    return f"""你是一位頂級的股票研究分析師。請對股票代號 {ticker} 進行全面深度估值分析。
+{market_data_block}
 請運用你所有的知識，包含但不限於：
 1. 基本面：最新財報數據、營收成長趨勢、EPS、本益比、產業前景
 2. 技術面：近期價格走勢、關鍵支撐壓力位、技術指標訊號
@@ -109,7 +126,7 @@ def build_valuation_prompt(ticker):
     "sentiment_score": <0到100的整數>,
     "political_score": <0到100的整數>,
     "recommendation": "<Strong Buy|Buy|Hold|Sell|Strong Sell>",
-    "current_price_estimate": "<目前估計價格>",
+    "current_price_estimate": "<必須使用上面提供的即時股價>",
     "target_price_range": "<目標價格區間，如 $150-$180>",
     "key_risks": [
         "<風險因子1>",
@@ -125,6 +142,19 @@ def build_valuation_prompt(ticker):
 }}
 
 請務必只回傳 JSON，不要有其他說明文字。"""
+
+
+def _format_market_cap(cap):
+    """將市值數字格式化為人類可讀的字串"""
+    if cap == 'N/A' or not isinstance(cap, (int, float)):
+        return str(cap)
+    if cap >= 1e12:
+        return f"${cap / 1e12:.2f}T"
+    elif cap >= 1e9:
+        return f"${cap / 1e9:.2f}B"
+    elif cap >= 1e6:
+        return f"${cap / 1e6:.2f}M"
+    return f"${cap:,.0f}"
 
 
 def run_realtime_analysis():
@@ -203,11 +233,17 @@ def run_stock_valuation():
     """
     logger.info(f"[股票估值] 開始深度估值分析，標的: {STOCK_TICKERS}")
 
+    # 先批量獲取所有標的的即時股價
+    logger.info("[股票估值] 正在獲取即時股價...")
+    all_prices = fetch_stock_prices(STOCK_TICKERS)
+    logger.info(f"[股票估值] 成功獲取 {len([v for v in all_prices.values() if v])} 支股票的即時股價")
+
     for ticker in STOCK_TICKERS:
         try:
             logger.info(f"[股票估值] 分析 {ticker}...")
 
-            prompt = build_valuation_prompt(ticker)
+            price_data = all_prices.get(ticker)
+            prompt = build_valuation_prompt(ticker, price_data=price_data)
             response, error = call_minimax(
                 prompt,
                 system_prompt="你是一位擁有20年經驗的頂級股票研究分析師，擅長量化分析與質化判斷。",

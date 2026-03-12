@@ -242,9 +242,69 @@ def get_all_news():
     return "\n".join(formatted_parts)
 
 
+def fetch_stock_prices(tickers):
+    """
+    使用 yfinance 獲取即時股價資訊
+    回傳格式: { ticker: { price, change_pct, high_52w, low_52w, market_cap, pe_ratio, volume } }
+    """
+    try:
+        import yfinance as yf
+    except ImportError:
+        logger.warning("[股價] yfinance 未安裝，無法獲取即時股價")
+        return {}
+
+    results = {}
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            if not info or "currentPrice" not in info:
+                # 嘗試從 fast_info 或 history 取得
+                hist = stock.history(period="1d")
+                if not hist.empty:
+                    current_price = round(float(hist["Close"].iloc[-1]), 2)
+                    results[ticker] = {
+                        "price": current_price,
+                        "change_pct": "N/A",
+                        "high_52w": "N/A",
+                        "low_52w": "N/A",
+                        "market_cap": "N/A",
+                        "pe_ratio": "N/A",
+                        "volume": "N/A",
+                    }
+                    logger.info(f"[股價] {ticker}: ${current_price} (from history)")
+                continue
+
+            current_price = info.get("currentPrice") or info.get("regularMarketPrice", 0)
+            prev_close = info.get("regularMarketPreviousClose", 0)
+            change_pct = round(((current_price - prev_close) / prev_close) * 100, 2) if prev_close else 0
+
+            results[ticker] = {
+                "price": round(float(current_price), 2),
+                "change_pct": f"{'+' if change_pct >= 0 else ''}{change_pct}%",
+                "high_52w": round(float(info.get("fiftyTwoWeekHigh", 0)), 2),
+                "low_52w": round(float(info.get("fiftyTwoWeekLow", 0)), 2),
+                "market_cap": info.get("marketCap", "N/A"),
+                "pe_ratio": round(float(info.get("trailingPE", 0)), 2) if info.get("trailingPE") else "N/A",
+                "volume": info.get("regularMarketVolume", "N/A"),
+            }
+            logger.info(f"[股價] {ticker}: ${current_price} ({change_pct:+.2f}%)")
+
+        except Exception as e:
+            logger.warning(f"[股價] {ticker} 獲取失敗: {e}")
+            results[ticker] = None
+
+    return results
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     print("===== 測試爬蟲 =====")
     result = get_all_news()
     print(result)
     print(f"\n總字數: {len(result)}")
+
+    print("\n===== 測試即時股價 =====")
+    prices = fetch_stock_prices(["QQQ", "GOOG", "NVDA"])
+    for t, p in prices.items():
+        print(f"  {t}: {p}")
