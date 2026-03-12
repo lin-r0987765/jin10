@@ -83,10 +83,11 @@ def build_realtime_prompt(dimension, news_text, previous_scores=None):
 請務必只回傳 JSON，不要有其他說明文字。"""
 
 
-def build_valuation_prompt(ticker, price_data=None):
+def build_valuation_prompt(ticker, price_data=None, news_text=None):
     """
     建構股票深度估值的 prompt
     price_data: 即時股價資訊 dict，包含 price, change_pct, high_52w, low_52w 等
+    news_text: 最新爬取的市場新聞文字
     """
     # 建構即時市場數據區塊
     market_data_block = ""
@@ -104,9 +105,19 @@ def build_valuation_prompt(ticker, price_data=None):
 你的 current_price_estimate 必須使用上面提供的「目前股價」，不要使用你訓練資料中的舊價格。
 """
 
+    # 建構最新新聞區塊
+    news_block = ""
+    if news_text:
+        # 截取前 3000 字避免 prompt 過長
+        trimmed_news = news_text[:3000]
+        news_block = f"""\n【最新市場快訊（即時爬取）】
+以下是透過爬蟲從金十數據與 Yahoo 國際新聞取得的最新市場消息，請務必參考這些最新資訊來輔助分析，而非僅依賴你訓練資料中的舊新聞。
+{trimmed_news}
+"""
+
     return f"""你是一位頂級的股票研究分析師。請對股票代號 {ticker} 進行全面深度估值分析。
-{market_data_block}
-請運用你所有的知識，包含但不限於：
+{market_data_block}{news_block}
+請運用你所有的知識，結合以上提供的即時市場數據與最新新聞，進行分析：
 1. 基本面：最新財報數據、營收成長趨勢、EPS、本益比、產業前景
 2. 技術面：近期價格走勢、關鍵支撐壓力位、技術指標訊號
 3. 市場情緒：市場對該股票的共識、分析師評級、新聞熱度
@@ -238,12 +249,18 @@ def run_stock_valuation():
     all_prices = fetch_stock_prices(STOCK_TICKERS)
     logger.info(f"[股票估值] 成功獲取 {len([v for v in all_prices.values() if v])} 支股票的即時股價")
 
+    # 爬取最新新聞作為分析參考
+    logger.info("[股票估值] 正在爬取最新市場新聞...")
+    news_text = get_all_news()
+    save_news_snapshot("valuation_combined", news_text[:5000])
+    logger.info(f"[股票估值] 新聞爬取完成，共 {len(news_text)} 字")
+
     for ticker in STOCK_TICKERS:
         try:
             logger.info(f"[股票估值] 分析 {ticker}...")
 
             price_data = all_prices.get(ticker)
-            prompt = build_valuation_prompt(ticker, price_data=price_data)
+            prompt = build_valuation_prompt(ticker, price_data=price_data, news_text=news_text)
             response, error = call_minimax(
                 prompt,
                 system_prompt="你是一位擁有20年經驗的頂級股票研究分析師，擅長量化分析與質化判斷。",
